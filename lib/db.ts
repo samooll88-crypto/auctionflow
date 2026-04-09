@@ -1,10 +1,10 @@
-import mysql from 'mysql2/promise'
+import { Pool } from 'pg'
 
-const pool = mysql.createPool({
-  host: 'localhost',
-  user: 'root',
-  password: 'tkdxo80!',
-  database: 'auction_db',
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false,
+  },
 })
 
 export default pool

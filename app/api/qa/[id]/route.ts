@@ -1,23 +1,6 @@
 import db from '@/lib/db'
 import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/session'
-import type { ResultSetHeader, RowDataPacket } from 'mysql2'
-
-interface QuestionDetailRow extends RowDataPacket {
-  id: number
-  title: string
-  content: string
-  status: string
-  created_at: string
-  nickname: string
-}
-
-interface AnswerRow extends RowDataPacket {
-  id: number
-  content: string
-  created_at: string
-  nickname: string
-}
 
 type TokenPayload = {
   id: number
@@ -49,7 +32,7 @@ export async function GET(
   try {
     const { id } = await context.params
 
-    const [questions] = await db.query<QuestionDetailRow[]>(
+    const questionResult = await db.query(
       `
       SELECT
         q.id,
@@ -60,16 +43,16 @@ export async function GET(
         u.nickname
       FROM questions q
       JOIN users u ON q.user_id = u.id
-      WHERE q.id = ?
+      WHERE q.id = $1
       `,
       [id]
     )
 
-    if (questions.length === 0) {
+    if (questionResult.rows.length === 0) {
       return Response.json({ message: '질문을 찾을 수 없습니다.' }, { status: 404 })
     }
 
-    const [answers] = await db.query<AnswerRow[]>(
+    const answerResult = await db.query(
       `
       SELECT
         a.id,
@@ -78,15 +61,15 @@ export async function GET(
         u.nickname
       FROM answers a
       JOIN users u ON a.user_id = u.id
-      WHERE a.question_id = ?
+      WHERE a.question_id = $1
       ORDER BY a.id ASC
       `,
       [id]
     )
 
     return Response.json({
-      question: questions[0],
-      answers,
+      question: questionResult.rows[0],
+      answers: answerResult.rows,
     })
   } catch (error) {
     console.error('질문 상세 조회 오류:', error)
@@ -118,11 +101,11 @@ export async function PUT(
       )
     }
 
-    await db.query<ResultSetHeader>(
+    await db.query(
       `
       UPDATE questions
-      SET title = ?, content = ?, status = ?
-      WHERE id = ?
+      SET title = $1, content = $2, status = $3
+      WHERE id = $4
       `,
       [title.trim(), content.trim(), status?.trim() || '답변대기', id]
     )
@@ -150,13 +133,13 @@ export async function DELETE(
 
     const { id } = await context.params
 
-    await db.query<ResultSetHeader>(
-      `DELETE FROM answers WHERE question_id = ?`,
+    await db.query(
+      `DELETE FROM answers WHERE question_id = $1`,
       [id]
     )
 
-    await db.query<ResultSetHeader>(
-      `DELETE FROM questions WHERE id = ?`,
+    await db.query(
+      `DELETE FROM questions WHERE id = $1`,
       [id]
     )
 

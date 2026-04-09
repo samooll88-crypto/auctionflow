@@ -1,16 +1,6 @@
 import db from '@/lib/db'
 import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/session'
-import type { RowDataPacket } from 'mysql2'
-
-interface QuestionRow extends RowDataPacket {
-  id: number
-  title: string
-  content: string
-  status: string
-  created_at: string
-  nickname: string
-}
 
 type TokenPayload = {
   id: number
@@ -20,7 +10,7 @@ type TokenPayload = {
 
 export async function GET() {
   try {
-    const [rows] = await db.query<QuestionRow[]>(
+    const result = await db.query(
       `
       SELECT
         q.id,
@@ -35,7 +25,7 @@ export async function GET() {
       `
     )
 
-    return Response.json(rows)
+    return Response.json(result.rows)
   } catch (error) {
     console.error('질문 목록 조회 오류:', error)
     return Response.json({ message: '질문 목록 조회 실패' }, { status: 500 })
@@ -62,7 +52,7 @@ export async function POST(req: Request) {
     await db.query(
       `
       INSERT INTO questions (user_id, title, content)
-      VALUES (?, ?, ?)
+      VALUES ($1, $2, $3)
       `,
       [userId, title, content]
     )

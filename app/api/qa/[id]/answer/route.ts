@@ -1,7 +1,6 @@
 import db from '@/lib/db'
 import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/session'
-import type { ResultSetHeader } from 'mysql2'
 
 type TokenPayload = {
   id: number
@@ -50,8 +49,8 @@ export async function POST(
       )
     }
 
-    await db.query<ResultSetHeader>(
-      `INSERT INTO answers (question_id, user_id, content) VALUES (?, ?, ?)`,
+    await db.query(
+      `INSERT INTO answers (question_id, user_id, content) VALUES ($1, $2, $3)`,
       [id, adminUser.id, content.trim()]
     )
 

@@ -1,16 +1,11 @@
 import db from '@/lib/db'
 import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/session'
-import type { ResultSetHeader, RowDataPacket } from 'mysql2'
 
 type TokenPayload = {
   id: number
   email: string
   role?: string
-}
-
-interface AnswerQuestionRow extends RowDataPacket {
-  question_id: number
 }
 
 const ADMIN_EMAIL = 'samooll@naver.com'
@@ -47,12 +42,8 @@ export async function PUT(
       return Response.json({ message: '답변 내용을 입력해주세요.' }, { status: 400 })
     }
 
-    await db.query<ResultSetHeader>(
-      `
-      UPDATE answers
-      SET content = ?
-      WHERE id = ?
-      `,
+    await db.query(
+      `UPDATE answers SET content = $1 WHERE id = $2`,
       [content.trim(), id]
     )
 
@@ -76,38 +67,30 @@ export async function DELETE(
 
     const { id } = await params
 
-    const [rows] = await db.query<AnswerQuestionRow[]>(
-      `
-      SELECT question_id
-      FROM answers
-      WHERE id = ?
-      `,
+    const answerResult = await db.query(
+      `SELECT question_id FROM answers WHERE id = $1`,
       [id]
     )
 
-    if (rows.length === 0) {
+    if (answerResult.rows.length === 0) {
       return Response.json({ message: '답변을 찾을 수 없습니다.' }, { status: 404 })
     }
 
-    const questionId = rows[0].question_id
+    const questionId = answerResult.rows[0].question_id
 
-    await db.query<ResultSetHeader>(
-      `DELETE FROM answers WHERE id = ?`,
+    await db.query(
+      `DELETE FROM answers WHERE id = $1`,
       [id]
     )
 
-    const [remainAnswers] = await db.query<RowDataPacket[]>(
-      `SELECT id FROM answers WHERE question_id = ? LIMIT 1`,
+    const remainResult = await db.query(
+      `SELECT id FROM answers WHERE question_id = $1 LIMIT 1`,
       [questionId]
     )
 
-    if (remainAnswers.length === 0) {
-      await db.query<ResultSetHeader>(
-        `
-        UPDATE questions
-        SET status = '답변대기'
-        WHERE id = ?
-        `,
+    if (remainResult.rows.length === 0) {
+      await db.query(
+        `UPDATE questions SET status = '답변대기' WHERE id = $1`,
         [questionId]
       )
     }
