@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { calculateAuctionCost } from '@/lib/calc'
 import type { AuctionItem } from '@/data/mockAuctionItems'
@@ -44,7 +44,7 @@ type SavedCalculation = {
   createdAt: string
 }
 
-export default function CalculatorPage() {
+function CalculatorContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
 
@@ -228,7 +228,7 @@ export default function CalculatorPage() {
           />
           <button
             onClick={() => handleSearch()}
-            className="rounded-lg bg-blue-600 px-5 py-3 font-semibold text-white"
+            className="rounded-lg bg-orange-500 px-5 py-3 font-semibold text-white hover:bg-orange-600"
           >
             검색하기
           </button>
@@ -249,8 +249,8 @@ export default function CalculatorPage() {
                 onClick={() => handleSelectItem(item)}
                 className={`rounded-xl border p-4 text-left transition ${
                   selectedItem?.auction_id === item.auction_id
-                    ? 'border-blue-600 bg-blue-50'
-                    : 'border-gray-200 hover:border-blue-300'
+                    ? 'border-orange-500 bg-orange-50'
+                    : 'border-gray-200 hover:border-orange-300'
                 }`}
               >
                 <div className="text-sm text-gray-700"><strong>사건번호:</strong> {item.case_no}</div>
@@ -268,7 +268,7 @@ export default function CalculatorPage() {
         <h2 className="mb-4 text-xl font-semibold">2. 선택된 물건</h2>
 
         {selectedItem ? (
-          <div className="space-y-2 rounded-xl border border-blue-200 bg-blue-50 p-4">
+          <div className="space-y-2 rounded-xl border border-orange-200 bg-orange-50 p-4">
             <p><strong>사건번호:</strong> {selectedItem.case_no}</p>
             <p><strong>소재지:</strong> {selectedItem.address}</p>
             <p><strong>물건종류:</strong> {selectedItem.property_type}</p>
@@ -297,14 +297,14 @@ export default function CalculatorPage() {
         <div className="mt-5 flex flex-col gap-3 sm:flex-row">
           <button
             onClick={handleCalculate}
-            className="flex-1 rounded-lg bg-blue-600 py-3 font-semibold text-white"
+            className="flex-1 rounded-lg bg-[#1B2E4B] py-3 font-semibold text-white hover:bg-[#253d61]"
           >
             계산하기
           </button>
 
           <button
             onClick={handleSave}
-            className="flex-1 rounded-lg border border-slate-300 bg-white py-3 font-semibold text-slate-700"
+            className="flex-1 rounded-lg border border-slate-300 bg-white py-3 font-semibold text-slate-700 hover:bg-slate-50"
           >
             계산 결과 저장
           </button>
@@ -325,6 +325,14 @@ export default function CalculatorPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function CalculatorPage() {
+  return (
+    <Suspense fallback={<div className="mx-auto max-w-5xl px-4 py-8">불러오는 중...</div>}>
+      <CalculatorContent />
+    </Suspense>
   )
 }
 
@@ -359,7 +367,7 @@ function Result({
   highlight?: boolean
 }) {
   return (
-    <div className={`flex justify-between border-b pb-2 ${highlight ? 'font-bold text-green-600' : ''}`}>
+    <div className={`flex justify-between border-b pb-2 ${highlight ? 'font-bold text-orange-500' : ''}`}>
       <span>{label}</span>
       <span>{value.toLocaleString('ko-KR')} 원</span>
     </div>
