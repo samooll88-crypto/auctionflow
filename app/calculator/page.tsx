@@ -18,6 +18,7 @@ type InputProps = {
   value: number
   setValue: React.Dispatch<React.SetStateAction<number>>
   suffix?: string
+  allowDecimal?: boolean
 }
 
 type SavedCalculation = {
@@ -66,7 +67,7 @@ function CalculatorContent() {
 
   const [result, setResult] = useState<CalcResult | null>(null)
 
-  const formatNumber = (value: number) => value.toLocaleString('ko-KR') + '원'
+  const formatNumber = (value: number) => Number(value).toLocaleString('ko-KR') + '원'
 
   const handleSearch = async (inputCaseNo?: string) => {
     const targetCaseNo = (inputCaseNo ?? caseNumber).trim()
@@ -98,7 +99,7 @@ function CalculatorContent() {
 
       if (items.length === 1) {
         setSelectedItem(items[0])
-        setBidPrice(items[0].minimum_sale_price)
+        setBidPrice(Number(items[0].minimum_sale_price))  // ✅ 수정
         setSearchMessage('검색 완료 (1건) · 자동 선택되었습니다.')
       } else {
         setSearchMessage(`검색 완료 (${items.length}건) · 물건을 선택하세요.`)
@@ -114,7 +115,7 @@ function CalculatorContent() {
 
   const handleSelectItem = (item: AuctionItem) => {
     setSelectedItem(item)
-    setBidPrice(item.minimum_sale_price)
+    setBidPrice(Number(item.minimum_sale_price))  // ✅ 수정
     setResult(null)
   }
 
@@ -130,14 +131,14 @@ function CalculatorContent() {
     }
 
     const res = calculateAuctionCost({
-      bidPrice,
-      acquisitionTaxRate: taxRate,
-      loanPercent: loanRate,
-      legalFee,
-      evictionCost,
-      arrearsFee: arrears,
-      repairCost,
-      otherCost,
+      bidPrice: Number(bidPrice),              // ✅ 수정
+      acquisitionTaxRate: Number(taxRate),     // ✅ 수정
+      loanPercent: Number(loanRate),           // ✅ 수정
+      legalFee: Number(legalFee),              // ✅ 수정
+      evictionCost: Number(evictionCost),      // ✅ 수정
+      arrearsFee: Number(arrears),             // ✅ 수정
+      repairCost: Number(repairCost),          // ✅ 수정
+      otherCost: Number(otherCost),            // ✅ 수정
     })
 
     setResult(res)
@@ -172,16 +173,16 @@ function CalculatorContent() {
       caseNo: selectedItem.case_no,
       address: selectedItem.address,
       propertyType: selectedItem.property_type,
-      appraisalPrice: selectedItem.appraisal_price,
-      minimumSalePrice: selectedItem.minimum_sale_price,
-      bidPrice,
-      taxRate,
-      loanRate,
-      legalFee,
-      evictionCost,
-      arrears,
-      repairCost,
-      otherCost,
+      appraisalPrice: Number(selectedItem.appraisal_price),
+      minimumSalePrice: Number(selectedItem.minimum_sale_price),
+      bidPrice: Number(bidPrice),
+      taxRate: Number(taxRate),
+      loanRate: Number(loanRate),
+      legalFee: Number(legalFee),
+      evictionCost: Number(evictionCost),
+      arrears: Number(arrears),
+      repairCost: Number(repairCost),
+      otherCost: Number(otherCost),
       acquisitionTax: result.acquisitionTax,
       loanAmount: result.loanAmount,
       extraCost: result.extraCost,
@@ -265,7 +266,7 @@ function CalculatorContent() {
       </div>
 
       <div className="rounded-2xl bg-white p-5 shadow">
-        <h2 className="mb-4 text-xl font-semibold">2. 선택된 물건</h2>
+        <h2 className="mb-4 text-xl font-semibond">2. 선택된 물건</h2>
 
         {selectedItem ? (
           <div className="space-y-2 rounded-xl border border-orange-200 bg-orange-50 p-4">
@@ -285,8 +286,8 @@ function CalculatorContent() {
 
         <div className="grid gap-4 md:grid-cols-2">
           <Input label="예상 낙찰가" value={bidPrice} setValue={setBidPrice} suffix="원" />
-          <Input label="취득세" value={taxRate} setValue={setTaxRate} suffix="%" />
-          <Input label="대출 비율" value={loanRate} setValue={setLoanRate} suffix="%" />
+          <Input label="취득세" value={taxRate} setValue={setTaxRate} suffix="%" allowDecimal />
+          <Input label="대출 비율" value={loanRate} setValue={setLoanRate} suffix="%" allowDecimal />
           <Input label="법무비용" value={legalFee} setValue={setLegalFee} suffix="원" />
           <Input label="명도비용" value={evictionCost} setValue={setEvictionCost} suffix="원" />
           <Input label="체납관리비" value={arrears} setValue={setArrears} suffix="원" />
@@ -336,15 +337,48 @@ export default function CalculatorPage() {
   )
 }
 
-function Input({ label, value, setValue, suffix }: InputProps) {
+function Input({ label, value, setValue, suffix, allowDecimal = false }: InputProps) {
+  const [displayValue, setDisplayValue] = useState(
+    value === 0 ? '' : allowDecimal ? String(value) : value.toLocaleString('ko-KR')
+  )
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value
+
+    if (allowDecimal) {
+      // 소수점 허용: 숫자와 소수점만 허용
+      if (raw === '' || /^\d*\.?\d*$/.test(raw)) {
+        setDisplayValue(raw)
+        const num = parseFloat(raw)
+        if (!isNaN(num)) setValue(num)
+        else setValue(0)
+      }
+      return
+    }
+
+    // 일반 정수: 콤마 포맷
+    const stripped = raw.replace(/,/g, '')
+    if (stripped === '') {
+      setDisplayValue('')
+      setValue(0)
+      return
+    }
+    const num = Number(stripped)
+    if (!isNaN(num)) {
+      setDisplayValue(num.toLocaleString('ko-KR'))
+      setValue(num)
+    }
+  }
+
   return (
     <div>
       <label className="mb-1 block text-sm font-medium">{label}</label>
       <div className="relative">
         <input
-          type="number"
-          value={value}
-          onChange={(e) => setValue(Number(e.target.value))}
+          type="text"
+          inputMode={allowDecimal ? 'decimal' : 'numeric'}
+          value={displayValue}
+          onChange={handleChange}
           className="w-full rounded-lg border p-3 pr-10"
         />
         {suffix && (
@@ -369,7 +403,7 @@ function Result({
   return (
     <div className={`flex justify-between border-b pb-2 ${highlight ? 'font-bold text-orange-500' : ''}`}>
       <span>{label}</span>
-      <span>{value.toLocaleString('ko-KR')} 원</span>
+      <span>{Number(value).toLocaleString('ko-KR')} 원</span>
     </div>
   )
 }
