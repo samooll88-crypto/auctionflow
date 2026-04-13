@@ -73,7 +73,8 @@ export default function QaDetailPage() {
   const [editingAnswerId, setEditingAnswerId] = useState<number | null>(null)
   const [editingAnswerContent, setEditingAnswerContent] = useState('')
 
-  const isAdmin = user?.email === ADMIN_EMAIL
+  // ✅ 로딩 중에는 관리자 버튼 숨김
+  const isAdmin = !loading && user?.email === ADMIN_EMAIL
 
   useEffect(() => {
     const init = async () => {
@@ -221,7 +222,7 @@ export default function QaDetailPage() {
     }
 
     try {
-      const res = await fetch(`/api/answers/${answerId}`, {
+      const res = await fetch(`/api/answer/${answerId}`, {  // ✅ 수정: answers → answer
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: editingAnswerContent }),
@@ -246,7 +247,7 @@ export default function QaDetailPage() {
     if (!ok) return
 
     try {
-      const res = await fetch(`/api/answers/${answerId}`, {
+      const res = await fetch(`/api/answer/${answerId}`, {  // ✅ 수정: answers → answer
         method: 'DELETE',
       })
 
