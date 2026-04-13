@@ -31,7 +31,7 @@ export async function POST(req: Request) {
 
     return new Response(JSON.stringify({ message: '로그인 성공' }), {
       headers: {
-        'Set-Cookie': `token=${token}; HttpOnly; Path=/; Max-Age=604800; Secure; SameSite=Lax`,
+        'Set-Cookie': `token=${token}; HttpOnly; Path=/; Max-Age=604800`,
         'Content-Type': 'application/json',
       },
     })

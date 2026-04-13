@@ -221,7 +221,7 @@ export default function QaDetailPage() {
     }
 
     try {
-      const res = await fetch(`/api/answer/${answerId}`, {  // ✅ 수정: answers → answer
+      const res = await fetch(`/api/answers/${answerId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: editingAnswerContent }),
@@ -246,7 +246,7 @@ export default function QaDetailPage() {
     if (!ok) return
 
     try {
-      const res = await fetch(`/api/answer/${answerId}`, {  // ✅ 수정: answers → answer
+      const res = await fetch(`/api/answers/${answerId}`, {
         method: 'DELETE',
       })
 

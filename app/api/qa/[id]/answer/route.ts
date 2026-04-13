@@ -54,6 +54,12 @@ export async function POST(
       [id, adminUser.id, content.trim()]
     )
 
+    // ✅ 답변 등록 시 질문 상태를 답변완료로 업데이트
+    await db.query(
+      `UPDATE questions SET status = '답변완료' WHERE id = $1`,
+      [id]
+    )
+
     return Response.json({ message: '답변이 등록되었습니다.' })
   } catch (error) {
     console.error('답변 등록 오류:', error)
