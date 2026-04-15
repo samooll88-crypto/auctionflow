@@ -6,6 +6,7 @@ import Link from 'next/link'
 function formatDate(dateStr: string) {
   const date = new Date(dateStr)
   return date.toLocaleString('ko-KR', {
+    timeZone: 'Asia/Seoul',
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -38,15 +39,18 @@ type MeResponse = {
   } | null
 }
 
+const PAGE_SIZE = 5
+
 export default function QaPage() {
   const [questions, setQuestions] = useState<Question[]>([])
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [message, setMessage] = useState('')
   const [user, setUser] = useState<MeResponse['user']>(null)
-  const [authLoading, setAuthLoading] = useState(true)  // 로그인 체크 로딩
+  const [authLoading, setAuthLoading] = useState(true)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
 
   useEffect(() => {
     const init = async () => {
@@ -109,6 +113,7 @@ export default function QaPage() {
       if (res.ok) {
         setTitle('')
         setContent('')
+        setCurrentPage(1)
         await refreshQuestions()
       }
     } catch (error) {
@@ -118,6 +123,11 @@ export default function QaPage() {
       setSubmitting(false)
     }
   }
+
+  // 페이지네이션 계산
+  const totalPages = Math.ceil(questions.length / PAGE_SIZE)
+  const startIndex = (currentPage - 1) * PAGE_SIZE
+  const currentQuestions = questions.slice(startIndex, startIndex + PAGE_SIZE)
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 space-y-8">
@@ -175,45 +185,90 @@ export default function QaPage() {
 
       {/* 질문 목록 */}
       <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-        <h2 className="text-2xl font-bold text-[#1B2E4B]">질문 목록</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-[#1B2E4B]">질문 목록</h2>
+          {!loading && questions.length > 0 && (
+            <span className="text-sm text-slate-400">총 {questions.length}개</span>
+          )}
+        </div>
 
         {loading ? (
           <p className="mt-6 text-sm text-slate-500">불러오는 중...</p>
         ) : (
-          <div className="mt-6 space-y-4">
-            {questions.length === 0 ? (
-              <p className="text-sm text-slate-500">등록된 질문이 없습니다.</p>
-            ) : (
-              questions.map((question) => (
-                <Link
-                  key={question.id}
-                  href={`/qa/${question.id}`}
-                  className="block rounded-2xl border border-slate-200 p-5 transition hover:border-orange-300 hover:bg-orange-50"
+          <>
+            <div className="mt-6 space-y-4">
+              {currentQuestions.length === 0 ? (
+                <p className="text-sm text-slate-500">등록된 질문이 없습니다.</p>
+              ) : (
+                currentQuestions.map((question) => (
+                  <Link
+                    key={question.id}
+                    href={`/qa/${question.id}`}
+                    className="block rounded-2xl border border-slate-200 p-5 transition hover:border-orange-300 hover:bg-orange-50"
+                  >
+                    <div className="flex items-center justify-between gap-4">
+                      <h3 className="text-lg font-bold text-slate-900">
+                        {question.title}
+                      </h3>
+                      <span className={`shrink-0 text-xs font-semibold px-2 py-1 rounded-full ${
+                        question.status === 'open'
+                          ? 'bg-orange-50 text-orange-500'
+                          : 'bg-green-50 text-green-600'
+                      }`}>
+                        {formatStatus(question.status)}
+                      </span>
+                    </div>
+
+                    <p className="mt-2 line-clamp-2 text-sm text-slate-500">
+                      {question.content}
+                    </p>
+
+                    <p className="mt-3 text-xs text-slate-400">
+                      작성자: {question.nickname} · {formatDate(question.created_at)}
+                    </p>
+                  </Link>
+                ))
+              )}
+            </div>
+
+            {/* 페이지네이션 */}
+            {totalPages > 1 && (
+              <div className="mt-8 flex items-center justify-center gap-2">
+                {/* 이전 버튼 */}
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed"
                 >
-                  <div className="flex items-center justify-between gap-4">
-                    <h3 className="text-lg font-bold text-slate-900">
-                      {question.title}
-                    </h3>
-                    <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                      question.status === 'open'
-                        ? 'bg-orange-50 text-orange-500'
-                        : 'bg-green-50 text-green-600'
-                    }`}>
-                      {formatStatus(question.status)}
-                    </span>
-                  </div>
+                  이전
+                </button>
 
-                  <p className="mt-2 line-clamp-2 text-sm text-slate-500">
-                    {question.content}
-                  </p>
+                {/* 페이지 번호 */}
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                      currentPage === page
+                        ? 'bg-[#1B2E4B] text-white'
+                        : 'border border-slate-200 text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
 
-                  <p className="mt-3 text-xs text-slate-400">
-                    작성자: {question.nickname} · {formatDate(question.created_at)}
-                  </p>
-                </Link>
-              ))
+                {/* 다음 버튼 */}
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  다음
+                </button>
+              </div>
             )}
-          </div>
+          </>
         )}
       </div>
     </div>
